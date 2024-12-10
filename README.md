@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 # Rust-Complier-Fuzzing--大创
 Fuzzing project based on the rust compiler in the Undergraduate Innovation and Entrepreneurship Program
-=======
->>>>>>> 83f24acb72303f53e08de83449d377136209985d
 ### 研究目的
 
 Rust编程语言的受欢迎程度正在迅速增长。凭借创新的类型系统，Rust在编译时静态消除了一类内存相关的错误，这些错误是C和C++等不安全语言的顽疾。也正是由于这些安全性保证，Rust被用于关键基础设施的开发，目前像Linux内核、Windows内核等都已开始集成Rust。Rust的性能接近C++，并且有良好的并行性支持，在未来应用场景会逐渐从系统级编程拓展到更广泛的软件开发领域，在数据科学和机器学习领域已有了一些初步的开源库。
