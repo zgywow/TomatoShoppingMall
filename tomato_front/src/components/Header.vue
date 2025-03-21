@@ -33,7 +33,7 @@ function logout() {
 
       <el-col :span="3" class="header-icon">
         <router-link to="/dashboard" v-slot="{navigate}" class="no-link">
-          <h1 @click="navigate" class="header-text"> 蓝鲸在线购物</h1>
+          <h1 @click="navigate" class="header-text"> 番茄商城 </h1>
         </router-link>
       </el-col>
 
@@ -62,7 +62,7 @@ function logout() {
 
 <style scoped>
 .custom-header {
-  background-color: #409eff;
+  background-color: #e74c3c;
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
 

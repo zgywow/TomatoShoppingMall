@@ -98,7 +98,7 @@ router.beforeEach((to, _, next) => {
         } else if (to.path === '/register') {
             next()
         } else {
-            next('/login')
+            next()
         }
     }
 })
