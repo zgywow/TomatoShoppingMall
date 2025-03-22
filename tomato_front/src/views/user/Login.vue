@@ -1,95 +1,159 @@
 <template>
+  <!-- 登录页面容器 -->
   <div class="login-container">
+    <!-- 登录卡片 -->
     <div class="login-card">
+      
+      <!-- 品牌部分 -->
       <div class="brand-header">
+        <!-- 品牌标题 -->
         <h1 class="brand-title">📚 番茄读书</h1>
+        <!-- 品牌副标题 -->
         <p class="brand-subtitle">开启你的纸质书之旅</p>
       </div>
 
-      <form @submit.prevent="handleSubmit">
+      <!-- 登录表单 -->
+      <form @submit.prevent="handleLogin">
+        
+        <!-- 手机号输入框 -->
         <div class="form-group">
-          <label for="username">用户名/邮箱</label>
+          <label for="phone">手机号</label>
           <input
               type="text"
-              id="username"
-              v-model="form.username"
-              @focus="handleInputFocus"
-              @blur="handleInputBlur"
+              id="phone"
+              v-model="tel" 
+              @focus="handleInputFocus" 
+              @blur="handleInputBlur"    
+          
           />
         </div>
 
+        <!-- 密码输入框 -->
         <div class="form-group">
           <label for="password">密码</label>
           <input
               type="password"
               id="password"
-              v-model="form.password"
-              @focus="handleInputFocus"
-              @blur="handleInputBlur"
+              v-model="password" 
+              @focus="handleInputFocus"  
+              @blur="handleInputBlur"    
+            
           />
         </div>
 
+        <!-- 登录按钮 -->
         <div class="form-actions">
           <button
               type="submit"
               class="submit-btn"
-              :disabled="isSubmitting"
+              :disabled="loginDisabled" 
           >
+            <!-- 如果正在提交，显示“登录中...”，否则显示“立即登录” -->
             <span v-if="!isSubmitting">立即登录</span>
             <span v-else>登录中...</span>
           </button>
         </div>
 
+        <!-- 额外的链接部分 -->
         <div class="additional-links">
+          <!-- 忘记密码的链接 -->
           <a href="#" class="link">忘记密码？</a>
+          <!-- 注册页面的链接 -->
           <router-link to="/register" class="link">立即注册</router-link>
         </div>
       </form>
     </div>
 
+    <!-- 背景的书籍装饰 -->
     <div class="background-books">
+      <!-- 第一块书籍装饰 -->
       <div class="book"></div>
+      <!-- 第二块书籍装饰 -->
       <div class="book"></div>
+      <!-- 第三块书籍装饰 -->
       <div class="book"></div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import {router} from '../../router';
-const form = ref({
-  username: '',
-  password: ''
-});
+<script setup lang="ts">
+import {ref, computed} from 'vue'
+import {router} from '../../router'
+import {userInfo, userLogin} from "../../api/user.ts"
 
-const isSubmitting = ref(false);
+// 输入框值（需要在前端拦截不合法输入：是否为空+额外规则）
+const tel = ref('')
+const password = ref('')
+const isSubmitting = ref(false)
 
-const handleSubmit = async () => {
-  try {
-    isSubmitting.value = true;
-    // 这里添加实际的登录逻辑
-    console.log('登录信息：', form.value);
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    // 处理登录成功后的跳转
-    // router.push('/dashboard');
-  } catch (error) {
-    console.error('登录失败:', error);
-    // 显示错误提示
-  } finally {
-    isSubmitting.value = false;
-  }
+
+// 电话号码是否为空
+const hasTelInput = computed(() => tel.value != '')
+// 密码是否为空
+const hasPasswordInput = computed(() => password.value != '')
+// 电话号码的规则
+const chinaMobileRegex = /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/
+const telLegal = computed(() => chinaMobileRegex.test(tel.value))
+// 密码不设置特殊规则
+// 登录按钮可用性
+const loginDisabled = computed(() => {
+  return !(hasTelInput.value && telLegal.value && hasPasswordInput.value)
+})
+
+function handleLogin() {
+  // 设置正在提交状态
+  isSubmitting.value = true
+  
+  // 调用登录接口
+  userLogin({
+    phone: tel.value,
+    password: password.value
+  }).then(res => {
+    // 登录成功处理
+    if (res.data.code === '000') {
+      ElMessage({
+        message: "登录成功！",
+        type: 'success',
+        center: true,
+      })
+      const token = res.data.result
+      sessionStorage.setItem('token', token)
+
+      // 获取用户信息
+      userInfo().then(res => {
+        sessionStorage.setItem('name', res.data.result.name)
+        sessionStorage.setItem('role', res.data.result.role)
+        if (res.data.result.role === 'STAFF') {
+          sessionStorage.setItem('storeId', res.data.result.storeId)
+        }
+        router.push({ path: "/dashboard" })
+      })
+    } else if (res.data.code === '400') {
+      // 登录失败处理
+      ElMessage({
+        message: res.data.msg,
+        type: 'error',
+        center: true,
+      })
+      password.value = ''  // 清空密码框
+    }
+  }).finally(() => {
+    // 无论请求成功还是失败，提交状态都要恢复
+    isSubmitting.value = false
+  })
+}
+
+const handleInputFocus = (e: FocusEvent) => {
+  const inputElement = e.target as HTMLInputElement;  // 强制类型转换为 HTMLInputElement
+  inputElement.parentElement?.classList.add('focused');
 };
 
-const handleInputFocus = (e) => {
-  e.target.parentElement.classList.add('focused');
-};
-
-const handleInputBlur = (e) => {
-  e.target.parentElement.classList.remove('focused');
-  if (!e.target.value) {
-    e.target.parentElement.classList.remove('filled');
+const handleInputBlur = (e: FocusEvent) => {
+  const inputElement = e.target as HTMLInputElement;  // 强制类型转换为 HTMLInputElement
+  inputElement.parentElement?.classList.remove('focused');
+  
+  if (!inputElement.value) {
+    inputElement.parentElement?.classList.remove('filled');
   }
 };
 </script>

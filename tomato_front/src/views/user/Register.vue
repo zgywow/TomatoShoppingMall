@@ -110,8 +110,8 @@ async function handleRegister() {
             <el-form>
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="昵称">
-                    <el-input v-model="name" placeholder="请输入昵称" />
+                  <el-form-item label="用户名">
+                    <el-input v-model="name" placeholder="请输入用户名" />
                   </el-form-item>
                 </el-col>
 
@@ -177,7 +177,6 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e3f2fd, #f1f8e9);  /* 清新渐变背景 */
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 

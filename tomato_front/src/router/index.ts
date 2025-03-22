@@ -86,19 +86,23 @@ router.beforeEach((to, _, next) => {
         if (to.meta.permission) {
             if (to.meta.permission.includes(role!)) {
                 next()
-            } else {
+            } 
+            else {
                 next('/404')
             }
         } else {
             next()
         }
-    } else {
+    } 
+    else {
         if (to.path === '/login') {
             next();
         } else if (to.path === '/register') {
             next()
-        } else {
-            next('/login')
+        } 
+        else {
+            // next('/login')
+            next()
         }
     }
 })

@@ -1,4 +1,3 @@
-// Lab2新增
 import { axios } from '../utils/request'
 import { API_MODULE } from './_prefix'
 
