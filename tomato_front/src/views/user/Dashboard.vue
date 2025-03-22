@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { userInfo, userInfoUpdate } from '../../api/user.ts' // 确保有上传头像的接口
-import { parseTime } from "../../utils"
-import { router } from '../../router'
-import { UserFilled } from "@element-plus/icons-vue";
-import { uploadImage } from '../../api/tools.ts';
+import {ref, computed} from 'vue'
+import {userInfo, userInfoUpdate} from '../../api/user.ts'
+import {parseRole, parseTime} from "../../utils"
+import {router} from '../../router'
+import {UserFilled} from "@element-plus/icons-vue";
 
+const role = sessionStorage.getItem("role")
 const name = ref('')
 const storeName = ref('')
 const tel = ref('')
 const address = ref('')
-const email = ref('')  // 新增的邮箱字段
-const regTime = ref('')
+const regTime = ref()
 
 const newName = ref('')
 
@@ -19,8 +18,6 @@ const displayInfoCard = ref(false)
 
 const password = ref('')
 const confirmPassword = ref('')
-
-const avatarUrl = ref('') // 保存头像URL
 
 const hasConfirmPasswordInput = computed(() => confirmPassword.value != '')
 const isPasswordIdentical = computed(() => password.value == confirmPassword.value)
@@ -30,15 +27,25 @@ const changeDisabled = computed(() => {
 
 getUserInfo()
 
+function createStore() {
+  // 跳转到 CreateStore.vue 页面
+  router.push({ path: '/createStore' });  
+}
+
+function goToAllStore() {
+  router.push({ path: '/allStore' });
+}
+
+
 function getUserInfo() {
   userInfo().then(res => {
     name.value = res.data.result.name
     tel.value = res.data.result.phone
     storeName.value = res.data.result.storeName
+    console.log(storeName.value)
     address.value = res.data.result.address
-    email.value = res.data.result.email || ''  // 获取当前邮箱
     regTime.value = parseTime(res.data.result.createTime)
-    avatarUrl.value = res.data.result.avatar || ''
+
     newName.value = name.value
   })
 }
@@ -48,7 +55,6 @@ function updateInfo() {
     name: newName.value,
     password: undefined,
     address: address.value,
-    email: email.value,  // 提交邮箱
   }).then(res => {
     if (res.data.code === '000') {
       ElMessage({
@@ -77,16 +83,16 @@ function updatePassword() {
       password.value = ''
       confirmPassword.value = ''
       ElMessageBox.alert(
-        `请重新登录`,
-        '修改成功',
-        {
-          customClass: "customDialog",
-          confirmButtonText: '跳转到登录',
-          type: "success",
-          showClose: false,
-          roundButton: true,
-          center: true
-        }).then(() => router.push({ path: "/login" }))
+          `请重新登录`,
+          '修改成功',
+          {
+            customClass: "customDialog",
+            confirmButtonText: '跳转到登录',
+            type: "success",
+            showClose: false,
+            roundButton: true,
+            center: true
+          }).then(() => router.push({path: "/login"}))
     } else if (res.data.code === '400') {
       ElMessage({
         customClass: 'customMessage',
@@ -98,40 +104,15 @@ function updatePassword() {
     }
   })
 }
-
-function handleAvatarChange(file: any) {
-  // 头像上传处理逻辑
-  uploadImage(file).then(res => {
-    if (res.data.code === '000') {
-      avatarUrl.value = res.data.result.avatar // 更新头像显示
-      ElMessage({
-        customClass: 'customMessage',
-        type: 'success',
-        message: '头像上传成功！',
-      })
-    } else {
-      ElMessage({
-        customClass: 'customMessage',
-        type: 'error',
-        message: res.data.msg,
-      })
-    }
-  })
-}
 </script>
+
 
 <template>
   <el-main class="main-container">
     <el-card class="aside-card">
       <div class="avatar-area">
-        <el-upload
-          class="avatar-uploader"
-          :action="handleAvatarChange"
-          :show-file-list="false"
-          :auto-upload="true"
-        >
-          <el-avatar :src="avatarUrl" :icon="UserFilled" :size="80"></el-avatar>
-        </el-upload>
+        <el-avatar :icon="UserFilled" :size="80">
+        </el-avatar>
         <span class="avatar-text"> 欢迎您，{{ name }}</span>
       </div>
 
@@ -143,21 +124,34 @@ function handleAvatarChange(file: any) {
           title="个人信息"
       >
         <template #extra>
-          <el-button type="primary" @click="displayInfoCard = !displayInfoCard">
+          <el-button type="primary"
+                     @click="displayInfoCard = displayInfoCard === false;">
             <span v-if="displayInfoCard">修改密码</span>
             <span v-else>修改个人信息</span>
           </el-button>
+
+          <el-button type="primary" @click="goToAllStore">
+            <span>商店列表</span>
+          </el-button>
+
+          <el-button v-if="role === 'MANAGER'" type="primary" @click="createStore">
+            <span>创建商店</span>
+          </el-button>
         </template>
+
+        <el-descriptions-item label="身份">
+          <el-tag>{{ parseRole(role) }}</el-tag>
+        </el-descriptions-item>
+
+        <el-descriptions-item label="所属商店" v-if="role === 'STAFF'">
+          {{ storeName }}
+        </el-descriptions-item>
 
         <el-descriptions-item label="联系电话">
           {{ tel }}
         </el-descriptions-item>
 
-        <el-descriptions-item label="邮箱">
-          {{ email }}
-        </el-descriptions-item>
-
-        <el-descriptions-item label="地址">
+        <el-descriptions-item label="地址" v-if="role === 'CUSTOMER' || role === 'STAFF'">
           {{ address }}
         </el-descriptions-item>
 
@@ -167,7 +161,6 @@ function handleAvatarChange(file: any) {
       </el-descriptions>
     </el-card>
 
-    <!-- 修改个人信息 -->
     <el-card v-if="displayInfoCard" class="change-card">
       <template #header>
         <div class="card-header">
@@ -187,21 +180,15 @@ function handleAvatarChange(file: any) {
           <el-input id="phone" v-model="tel" disabled/>
         </el-form-item>
 
-        <el-form-item>
+        <el-form-item v-if="role === 'CUSTOMER' || role === 'STAFF'">
           <label for="address">收货地址</label>
           <el-input id="address" type="textarea"
                     rows="4"
                     v-model="address" placeholder="中华门"></el-input>
         </el-form-item>
-
-        <el-form-item>
-          <label for="email">邮箱</label>
-          <el-input id="email" v-model="email" type="email" placeholder="请输入邮箱"/>
-        </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 修改密码 -->
     <el-card v-if="!displayInfoCard" class="change-card">
       <template #header>
         <div class="card-header">
@@ -211,6 +198,8 @@ function handleAvatarChange(file: any) {
           </el-button>
         </div>
       </template>
+
+      
 
       <el-form>
         <el-form-item>
@@ -230,15 +219,19 @@ function handleAvatarChange(file: any) {
 
     </el-card>
   </el-main>
+
 </template>
 
+
 <style scoped>
+
 .error-warn {
   color: red;
 }
 
-.error-warn-input {
-  --el-input-focus-border-color: red;
+.profile-card {
+  border-radius: 15px;
+  transition: all 0.3s;
 }
 
 .main-container {
@@ -247,35 +240,39 @@ function handleAvatarChange(file: any) {
   padding: 15px;
   gap: 5px;
   justify-content: center;
-  background: linear-gradient(135deg, #3f87a6, #ebf8e1); /* 主题色 */
 }
 
-.card-header {
-  display: flex;
+.info-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #f5f5f5;
   align-items: center;
-  justify-content: space-between;
 }
 
-.change-card {
-  width: 66%;
+.info-item:last-child {
+  border-bottom: none;
 }
 
-.avatar-area {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  gap: 30px;
+.item-label {
+  font-weight: 500;
+  color: #666;
 }
 
-.avatar-text {
-  font-size: x-large;
-  font-weight: bolder;
-  padding-right: 40px;
+.item-content {
+  color: #888;
 }
 
-.avatar-uploader {
-  display: inline-block;
-  cursor: pointer;
+.edit-form {
+  margin-top: 20px;
 }
+
+.form-actions {
+  margin-top: 30px;
+  text-align: right;
+}
+
+.el-button {
+  margin-left: 10px;
+}
+
 
 </style>
